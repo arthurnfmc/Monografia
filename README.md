@@ -13,10 +13,13 @@
 - Vision Transformer full-dataset augmented client: ``` python3 client_augmented_csv_visiontransformer.py path_to_train.csv path_to_validation.csv ```
 - HuggingFace Client:  ``` python3 client_huggingface.py client_str train.csv val.csv ``` (client_str is a client identifier)
 - HuggingFace augmented Client:  ``` python3 client_augmented_huggingface.py client_str train.csv val.csv ``` (client_str is a client identifier)
+- HuggingFace Simulation: ``` python3 huggingface_conformal_simulated.py ```
 
 ## Testing
 - Centralized Test: ``` python3 test_specific_model_csv.py path_to_model.npz path_to_test.csv ```
+- Centralized Test (conformal): ``` python3 test_specific_model_csv_conformal.py path_to_model.npz path_to_test.csv ```
 - Centralized Test (hugging face): ``` python3 test_huggingface_model.py model_path.npz test_path.csv ```
+- Centralized Test (hugging face) (conformal): ``` python3 test_huggingface_model_conformal.py model_path.npz test_path.csv ```
 
 ## Credits
 Dataset from: https://www.tensorflow.org/datasets/catalog/colorectal_histology
