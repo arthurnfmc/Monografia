@@ -80,9 +80,11 @@ def data_augmentation(images, labels, corrupted=False):
     shuffle(combined)
     augmented_images[:], augmented_labels[:] = zip(*combined)
 
+    # When corrupted, data_augmentation() will return original corrupted data + augmented corrupted data
     if corrupted:
         corrupted_size = len(augmented_images)
-        augmented_images = np.random.randint(0, 256, size=(corrupted_size, augmented_images[0].shape[0], augmented_images[0].shape[1], augmented_images[0].shape[2]))
+        augmented_images = np.random.randint(0, 256, size=(len(images)+corrupted_size, augmented_images[0].shape[0], augmented_images[0].shape[1], augmented_images[0].shape[2]))
+        augmented_labels = labels + augmented_labels
     
     return list(augmented_images), list(augmented_labels)
 
@@ -132,10 +134,23 @@ class HuggingFaceClient(fl.client.NumPyClient):
         }, features=features)
 
         # Combining original and augmented datasets
-        combined_train_dataset = Dataset.from_dict({
-            'image': list(train_dataset['image']) + list(augmented_train_dataset['image']),
-            'labels': list(train_dataset['labels']) + list(augmented_train_dataset['labels'])
-        }, features=features)
+        combined_train_dataset = None
+
+        # When corrupted=True, data_augmentation() will return an array with length=len(original)+len(augmented) of corrupted images
+
+        # No corruption
+        if not corrupted:
+            combined_train_dataset = Dataset.from_dict({
+                'image': list(train_dataset['image']) + list(augmented_train_dataset['image']),
+                'labels': list(train_dataset['labels']) + list(augmented_train_dataset['labels'])
+            }, features=features)
+        # Corruption
+        else:
+            combined_train_dataset = Dataset.from_dict({
+                'image': list(augmented_train_dataset['image']),
+                'labels': list(augmented_train_dataset['labels'])
+            }, features=features)
+
 
         ds['train'] = combined_train_dataset
 
@@ -261,12 +276,12 @@ class HuggingFaceClient(fl.client.NumPyClient):
 
 GLOBAL_EPOCHS         = 4
 VERBOSE               = 1
-OUTPUT_DIR            = "VITS_CONFORMAL-1de3corrompidos-STRATIFIED-COM_CLIENT_DROP"
+OUTPUT_DIR            = "VITS_CONFORMAL-2de3corrompidos-STRATIFIED-COM_CLIENT_DROP"
 FRACTION_FIT          = 1
 FRACTION_EVALUATE     = 1
-MIN_FIT_CLIENTS       = 3
-MIN_EVALUATE_CLIENTS  = 3
-MIN_AVAILABLE_CLIENTS = 3
+MIN_FIT_CLIENTS       = 3 # 4
+MIN_EVALUATE_CLIENTS  = 3 # 4
+MIN_AVAILABLE_CLIENTS = 3 # 4
 DECAY_ROUNDS          = [8, 16, 19]
 DECAY_FACTOR          = 0.9
 EXTRA_NOTES           = "Nevasca simulation"
@@ -389,7 +404,7 @@ start = time.time()
 history = fl.simulation.start_simulation(
     client_fn=lambda cid: HuggingFaceClient(train_csv_path=f"./CSVS/SUBDIVIDED_DATASETS/3_CLIENTS/STRATIFIED/client{int(cid)+1}.csv", 
     val_csv_path=f"./CSVS/SUBDIVIDED_DATASETS/3_CLIENTS/STRATIFIED/validation.csv",
-    corrupted=int(cid)>1, # Trocar o valor a depender de quantos clientes corrompidos quiser
+    corrupted=int(cid)>0, # Trocar o valor a depender de quantos clientes corrompidos quiser
     cid=int(cid)),
     num_clients=3,  # Total de clientes simulados
     config=fl.server.ServerConfig(num_rounds=GLOBAL_EPOCHS),
